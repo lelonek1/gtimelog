@@ -1359,12 +1359,12 @@ class Window(Gtk.ApplicationWindow):
             GLib.timeout_add_seconds(1, self.check_reload_tasks)
 
     def check_reload(self):
-        if self.timelog.check_reload():
+        if self.timelog and self.timelog.check_reload():
             self.notify('timelog')
             self.tick(True)
 
     def check_reload_tasks(self):
-        if self.tasks.check_reload():
+        if self.tasks and self.tasks.check_reload():
             self.notify('tasks')
 
     def enable_add_entry(self):
@@ -1500,7 +1500,9 @@ class TaskEntry(Gtk.Entry):
         if self.history_pos == 0:
             self.history_undo = self.get_text()
             self.filtered_history = uniq([
-                l for l in self.history if l.startswith(self.history_undo)])
+                entry for entry in self.history
+                if entry.startswith(self.history_undo)
+            ])
         history = self.filtered_history
         new_pos = max(0, min(self.history_pos + delta, len(history)))
         if new_pos == 0:
@@ -1858,15 +1860,21 @@ class LogView(Gtk.TextView):
             time_left = self.time_left_at_work(total_work)
             time_to_leave = self.now + time_left
             if time_left < datetime.timedelta(0):
-                fmt = _("Time left at work: {0} (should've finished at {1:%H:%M})")
-                time_left = datetime.timedelta(0)
+                fmt = _("Time left at work: {0} (should've finished at {1:%H:%M}, overtime of {2} until now)")
+                real_time_left = datetime.timedelta(0)
+                self.wfmt(
+                    fmt,
+                    (format_duration(real_time_left), 'duration'),
+                    (time_to_leave, 'time'),
+                    (format_duration(-time_left), 'duration'),
+                )
             else:
                 fmt = _('Time left at work: {0} (till {1:%H:%M})')
-            self.wfmt(
-                fmt,
-                (format_duration(time_left), 'duration'),
-                (time_to_leave, 'time'),
-            )
+                self.wfmt(
+                    fmt,
+                    (format_duration(time_left), 'duration'),
+                    (time_to_leave, 'time'),
+                )
 
         if self.office_hours:
             self.w('\n')

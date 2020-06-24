@@ -118,10 +118,10 @@ def next_month(date):
         return datetime.date(date.year, date.month + 1, 1)
 
 
-def uniq(l):
+def uniq(items):
     """Return list with consecutive duplicates removed."""
-    result = l[:1]
-    for item in l[1:]:
+    result = items[:1]
+    for item in items[1:]:
         if item != result[-1]:
             result.append(item)
     return result
@@ -249,9 +249,10 @@ class TimeCollection(object):
         Return a tuple (category, task).
         """
         if ': ' in entry:
-            return tuple(entry.split(': ', 1))
+            cat, tsk = entry.split(': ', 1)
+            return cat.strip(), tsk.strip()
         elif entry.endswith(':'):
-            return entry.partition(':')[0], ''
+            return entry.partition(':')[0].strip(), ''
         else:
             return None, entry
 
