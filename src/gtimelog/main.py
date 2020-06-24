@@ -168,6 +168,23 @@ def format_duration(duration):
     return _('{0} h {1} min').format(h, m)
 
 
+def format_duration_decimal(duration):
+    """
+    Format a datetime.timedelta as decimal hours.
+    """
+    h = as_minutes(duration) / 60.0
+    h_rounded = round((as_minutes(duration)*4) / 60) / 4.0
+    return _('{0:0.2f} h ({1:0.2f})').format(h, h_rounded)
+
+
+def format_split_duration_decimal(duration, divisor):
+    """
+    Format a datetime.timedelta divided by `divisor` as decimal hours.
+    """
+    h = (as_minutes(duration) / 60.0) / float(divisor)
+    return _('(/{1:d}: {0:0.2f} h)').format(h, divisor)
+
+
 def isascii(s):
     return all(0 <= ord(c) <= 127 for c in s)
 
@@ -1648,6 +1665,14 @@ class LogView(Gtk.TextView):
                 if self.filter_text in category:
                     self.write_group(category, duration)
                     total += duration
+                    if '/' in category:
+                        parts = category.split('/')
+                        extra_duration = duration // len(parts)
+                        for split_category, split_duration in categories:
+                            if self.filter_text in split_category and split_category in parts:
+                                self.w('\t')
+                                self.write_group(split_category, split_duration+extra_duration)
+
         else:
             return # bug!
         if self.filter_text:
@@ -1708,10 +1733,16 @@ class LogView(Gtk.TextView):
         self.w(period, 'time')
         self.w('\t')
         tag = ('slacking' if '**' in item.entry else None)
-        self.w(item.entry + '\n', tag)
+        entry_text = item.entry
+        if item.tags:
+            entry_text += ' -- ' + ' '.join(item.tags)
+        self.w(entry_text + '\n', tag)
 
     def write_group(self, entry, duration):
         self.w(format_duration(duration), 'duration')
+        self.w('\t' + format_duration_decimal(duration), 'duration')
+        if '/' in entry:
+            self.w('\t' + format_split_duration_decimal(duration, len(entry.split('/'))), 'duration')
         tag = ('slacking' if '**' in entry else None)
         self.w('\t' + entry + '\n', tag)
 
